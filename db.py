@@ -31,6 +31,7 @@ class Database(object):
 
     def close(self):
         if self.conn:
+            self.conn.commit()
             self.conn.close()
 
 
@@ -60,3 +61,4 @@ class Cursor(object):
 
     def fetchall(self):
         return self._obj.fetchall()
+

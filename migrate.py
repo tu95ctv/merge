@@ -5,6 +5,8 @@ from table import Table
 crm = Database(config.options['CRM'])
 accounting = Database(config.options['ACCOUNTING'])
 
+def migrate_sales_team():
+    pass
 
 def migrate_user():
     crm_users = Table('res_users', crm)
@@ -14,33 +16,59 @@ def migrate_user():
     all_crm_users = crm_users.select_all()
     users_mapping = {}
     existing_users = {}
+    crm_users_toinsert = []
     for acc_user in all_accounting_users:
         existing_users[acc_user['login']] = acc_user['id']
     for crm_user in all_crm_users:
         if existing_users.get(crm_user['login'], False):
             users_mapping[crm_user['id']] = existing_users.get(crm_user['login'])
-    crm.cursor.execute(
-        "SELECT %s FROM res_users WHERE login not in (%s)" % (crm_users.get_columns_str(), ",".join([x for x in existing_users])))
-    crm_users_toinsert = crm.cursor.fetchall()
+        else:
+            # Ugly hack to map sale_team_id
+            if crm_user['sale_team_id'] == 51:
+                crm_user['sale_team_id'] = 52
+            crm_users_toinsert.append([crm_user[k] for k in crm_user])
     ins_query, mapped_ids = crm_users.prepare_insert(crm_users_toinsert)
-
-    accounting_users.store_mapping_table(mapped_ids)
-    crm.cursor.execute(ins_query)
+    users_mapping.update(mapped_ids)
+    accounting_users.store_mapping_table(users_mapping)
+    # accounting.cursor.execute(ins_query)
+    accounting.close()
     return mapped_ids
 
 
 def migrate_partner():
     crm_partner = Table('res_partner', crm)
     accounting_partner = Table('res_partner', accounting)
-    all_accounting_partner = accounting_partner.select_all()
-    existing_login = ["'%s'" % x['ref'] for x in all_accounting_partner]
-    crm.cursor.execute("SELECT * FROM res_partner WHERE ref not in (%s)" % ",".join(existing_login))
-    crm_partner_toinsert = crm.cursor.fetchall()
-    ins_query, mapped_ids = crm_partner.prepare_insert(crm_partner_toinsert)
     accounting_partner.init_mapping_table()
-    accounting_partner.store_mapping_table(mapped_ids)
-    accounting.cursor.execute(ins_query)
-    print("Done")
+    all_accounting_partner = accounting_partner.select_all()
+    all_crm_partner = crm_partner.select_all()
+    partners_mapping = {}
+    existing_partner = {}
+    crm_partner_toinsert = []
+    accounting.cursor.execute("SELECT * FROM res_users_mapping")
+    users_mapping = accounting.cursor.dictfetchall()
+    user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
+    for acc_partner in all_accounting_partner:
+        if acc_partner['ref']:
+            existing_partner[acc_partner['ref']] = acc_partner['id']
+    partner_user_fields = [
+        'write_uid',
+        'create_uid',
+        'user_id'
+    ]
+    for crm_partner in all_crm_partner:
+        if existing_partner.get(crm_partner['ref'], False):
+            partners_mapping[crm_partner['id']] = existing_partner.get(crm_partner['ref'])
+        else:
+            for field in partner_user_fields:
+                if crm_partner[field] in user_mapping_dict:
+                    crm_partner[field] = user_mapping_dict[crm_partner[field]]
+            crm_partner_toinsert.append([crm_partner[k] for k in crm_partner])
+    ins_query, mapped_ids = crm_partner.prepare_insert(crm_partner_toinsert)
+    partners_mapping.update(mapped_ids)
+    accounting_partner.store_mapping_table(partners_mapping)
+    # accounting.cursor.execute(ins_query)
+    accounting.close()
+    return mapped_ids
 
 
 def migrate_leads():
@@ -48,4 +76,4 @@ def migrate_leads():
 
 
 if __name__ == '__main__':
-    migrate_user()
+    migrate_partner()

@@ -7,6 +7,8 @@ class Table(object):
         self.mapping_name = self.name + "_mapping"
         self.db = db
         self.cr = db.cursor
+        self.columns = self.get_columns()
+        self.columns_str = self.get_columns_str()
 
     def get_highest_id(self):
         self.cr.execute("SELECT last_value FROM %s_id_seq" % self.name)
@@ -22,15 +24,15 @@ class Table(object):
             information_schema.columns
         WHERE table_schema = 'public' AND table_name = '%s';
         """ % self.name)
-        return self.cr.fetchall()
+        res = self.cr.fetchall()
+        return [x[0] for x in res]
 
     def get_columns_str(self):
-        columns = list(self.get_columns())
-        columns.remove(('partner_id', ))
-        return ', '.join([x[0] if x[0] != 'sellerCode' else '"%s"' % x[0] for x in columns])
+        columns = self.columns
+        return ', '.join([x if x != 'customerName' else '"%s"' % x for x in columns])
 
     def select_all(self):
-        self.cr.execute("SELECT %s FROM %s" % (self.get_columns_str(), self.name))
+        self.cr.execute("SELECT %s FROM %s" % (self.columns_str, self.name))
         return self.cr.dictfetchall()
 
     def select(self):
@@ -39,11 +41,11 @@ class Table(object):
     def init_mapping_table(self):
         init_mapping_tbl_query = """
         DROP TABLE IF EXISTS %s;
-        CREATE TABLE authors (
+        CREATE TABLE %s (
             crm_id INT,
-            accounting_id INT,
+            accounting_id INT
         ); 
-        """ % self.mapping_name
+        """ % (self.mapping_name, self.mapping_name)
         self.cr.execute(init_mapping_tbl_query)
 
     def store_mapping_table(self, data):
@@ -56,7 +58,7 @@ class Table(object):
 
     def prepare_insert(self, data):
         mapped_ids = {}
-        columns = self.get_columns_str()
+        columns = self.columns_str
         insert_query = "INSERT INTO %s (%s) VALUES " % (self.name, columns)
         next_id = self.get_highest_id() + 1
         lines = []
