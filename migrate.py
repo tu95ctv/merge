@@ -32,21 +32,61 @@ def migrate_user():
     accounting_users.store_mapping_table(users_mapping)
     # accounting.cursor.execute(ins_query)
     accounting.close()
-    return mapped_ids
 
 
 def migrate_partner():
+    partners_mapping = {}
     crm_partner = Table('res_partner', crm)
     accounting_partner = Table('res_partner', accounting)
     accounting_partner.init_mapping_table()
-    all_accounting_partner = accounting_partner.select_all()
-    all_crm_partner = crm_partner.select_all()
-    partners_mapping = {}
-    existing_partner = {}
-    crm_partner_toinsert = []
+
     accounting.cursor.execute("SELECT * FROM res_users_mapping")
     users_mapping = accounting.cursor.dictfetchall()
     user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
+
+    migrate_company_partner(crm_partner, accounting_partner, user_mapping_dict, partners_mapping)
+    migrate_employer_partner(crm_partner, accounting_partner, user_mapping_dict, partners_mapping)
+    # accounting.cursor.execute(ins_query)
+    accounting.close()
+
+
+def migrate_company_partner(crm_partner, accounting_partner, user_mapping_dict, partners_mapping):
+    existing_partner = {}
+    crm_partner_toinsert = []
+    accounting.cursor.execute("SELECT * FROM res_partner WHERE company_type ='company' AND vat IS NOT NULL")
+    all_accounting_partner = accounting.cursor.dictfetchall()
+    crm.cursor.execute("SELECT * FROM res_partner WHERE company_type ='company' AND vat IS NOT NULL")
+    all_crm_partner = crm.cursor.dictfetchall()
+    for acc_partner in all_accounting_partner:
+        if acc_partner['vat']:
+            existing_partner[acc_partner['vat']] = acc_partner['id']
+    partner_user_fields = [
+        'write_uid',
+        'create_uid',
+        'user_id'
+    ]
+    for crm_partner in all_crm_partner:
+        if existing_partner.get(crm_partner['vat'], False):
+            partners_mapping[crm_partner['id']] = existing_partner.get(crm_partner['vat'])
+        else:
+            for field in partner_user_fields:
+                if crm_partner[field] in user_mapping_dict:
+                    crm_partner[field] = user_mapping_dict[crm_partner[field]]
+            crm_partner_toinsert.append([crm_partner[k] for k in crm_partner])
+
+    ins_query, mapped_ids = crm_partner.prepare_insert(crm_partner_toinsert)
+    partners_mapping.update(mapped_ids)
+    accounting_partner.store_mapping_table(partners_mapping)
+    accounting.cursor.execute(ins_query)
+
+
+def migrate_employer_partner(crm_partner, accounting_partner, user_mapping_dict, partners_mapping):
+    existing_partner = {}
+    crm_partner_toinsert = []
+    accounting.cursor.execute("SELECT * FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL")
+    all_accounting_partner = accounting.cursor.dictfetchall()
+    crm.cursor.execute("SELECT * FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL")
+    all_crm_partner = crm.cursor.dictfetchall()
     for acc_partner in all_accounting_partner:
         if acc_partner['ref']:
             existing_partner[acc_partner['ref']] = acc_partner['id']
@@ -62,13 +102,14 @@ def migrate_partner():
             for field in partner_user_fields:
                 if crm_partner[field] in user_mapping_dict:
                     crm_partner[field] = user_mapping_dict[crm_partner[field]]
+            if crm_partner['parent_id'] in partners_mapping:
+                crm_partner['parent_id'] = partners_mapping[crm_partner['parent_id']]
             crm_partner_toinsert.append([crm_partner[k] for k in crm_partner])
+
     ins_query, mapped_ids = crm_partner.prepare_insert(crm_partner_toinsert)
     partners_mapping.update(mapped_ids)
     accounting_partner.store_mapping_table(partners_mapping)
-    # accounting.cursor.execute(ins_query)
-    accounting.close()
-    return mapped_ids
+    accounting.cursor.execute(ins_query)
 
 
 def migrate_leads():
