@@ -60,7 +60,7 @@ class Table(object):
     def prepare_insert(self, data):
         mapped_ids = {}
         columns = self.columns_str
-        insert_query = "INSERT INTO %s (%s) VALUES" % (self.name, columns)
+        insert_query = '''INSERT INTO %s (%s) VALUES''' % (self.name, columns)
         next_id = self.get_highest_id() + 1
         lines = []
         for line in data:
@@ -71,10 +71,10 @@ class Table(object):
             line[0] = next_id
             # set new commercial partner
             line[35] = next_id
-            line = self.standardlize_ins_data(line)
-            line = str(tuple(line))
-            line = line.replace("'Null'", "Null")
-            lines.append(line)
+            # line = self.standardlize_ins_data(line)
+            # line = str(tuple(line))
+            # line = line.replace("'Null'", "Null")
+            lines.append(tuple(line))
 
             next_id += 1
         return insert_query + " %s", mapped_ids, lines

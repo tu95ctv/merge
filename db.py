@@ -62,3 +62,5 @@ class Cursor(object):
     def fetchall(self):
         return self._obj.fetchall()
 
+    def mogrify(self, *args, **kwargs):
+        return self._obj.mogrify(*args, **kwargs)

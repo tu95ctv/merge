@@ -1,6 +1,7 @@
 from tools import config
 from db import Database
 from table import Table
+from psycopg2.extensions import adapt
 
 crm = Database(config.options['CRM'])
 accounting = Database(config.options['ACCOUNTING'])
@@ -55,7 +56,7 @@ def migrate_company_partner(crm_partner, accounting_partner, user_mapping_dict, 
     crm_partner_toinsert = []
     accounting.cursor.execute("SELECT * FROM res_partner WHERE company_type ='company' AND vat IS NOT NULL")
     all_accounting_partner = accounting.cursor.dictfetchall()
-    crm.cursor.execute("SELECT * FROM res_partner WHERE company_type ='company' AND vat IS NOT NULL")
+    crm.cursor.execute("SELECT * FROM res_partner WHERE company_type ='company' AND vat IS NOT NULL AND id=82585")
     all_crm_partner = crm.cursor.dictfetchall()
     for acc_partner in all_accounting_partner:
         if acc_partner['vat']:
@@ -78,8 +79,7 @@ def migrate_company_partner(crm_partner, accounting_partner, user_mapping_dict, 
     partners_mapping.update(mapped_ids)
     accounting_partner.store_mapping_table(partners_mapping)
     lines = ", ".join(lines)
-    data = (lines, )
-    accounting.cursor.execute(ins_query, data)
+    accounting.cursor.execute(ins_query, (lines, ))
 
 
 def migrate_employer_partner(crm_partner, accounting_partner, user_mapping_dict, partners_mapping):
