@@ -9,6 +9,8 @@ class Table(object):
         self.db = db
         self.cr = db.cursor
         self.columns = self.get_columns()
+        self.columns.remove('parent_id')
+        self.columns.remove('commercial_partner_id')
         self.columns_str = self.get_columns_str()
 
     def get_highest_id(self):
@@ -29,8 +31,7 @@ class Table(object):
         return [x[0] for x in res]
 
     def get_columns_str(self):
-        columns = self.columns
-        return ', '.join([x if x != 'customerName' else '"%s"' % x for x in columns])
+        return ', '.join([x if x != 'customerName' else '"%s"' % x for x in self.columns])
 
     def select_all(self):
         self.cr.execute("SELECT %s FROM %s" % (self.columns_str, self.name))
@@ -59,8 +60,7 @@ class Table(object):
 
     def prepare_insert(self, data):
         mapped_ids = {}
-        columns = self.columns_str
-        insert_query = '''INSERT INTO %s (%s) VALUES''' % (self.name, columns)
+        insert_query = '''INSERT INTO %s (%s) VALUES''' % (self.name, self.columns_str)
         next_id = self.get_highest_id() + 1
         lines = []
         for line in data:
@@ -70,7 +70,6 @@ class Table(object):
             # set new id
             line[0] = next_id
             # set new commercial partner
-            line[35] = next_id
             # line = self.standardlize_ins_data(line)
             # line = str(tuple(line))
             # line = line.replace("'Null'", "Null")
