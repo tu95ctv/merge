@@ -5,3 +5,4 @@
 Install / upgrade modules on accounting database:
 - helpdesk
 - google_calendar
+- sieuviet_crm

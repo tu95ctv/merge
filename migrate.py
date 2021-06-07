@@ -65,19 +65,21 @@ def migrate_company_partner(crm_partner, accounting_partner, user_mapping_dict, 
         'create_uid',
         'user_id'
     ]
-    for crm_partner in all_crm_partner:
-        if existing_partner.get(crm_partner['vat'], False):
-            partners_mapping[crm_partner['id']] = existing_partner.get(crm_partner['vat'])
+    for partner in all_crm_partner:
+        if existing_partner.get(partner['vat'], False):
+            partners_mapping[partner['id']] = existing_partner.get(partner['vat'])
         else:
             for field in partner_user_fields:
-                if crm_partner[field] in user_mapping_dict:
-                    crm_partner[field] = user_mapping_dict[crm_partner[field]]
-            crm_partner_toinsert.append([crm_partner[k] for k in crm_partner])
+                if partner[field] in user_mapping_dict:
+                    partner[field] = user_mapping_dict[partner[field]]
+            crm_partner_toinsert.append([partner[k] for k in partner])
 
-    ins_query, mapped_ids = crm_partner.prepare_insert(crm_partner_toinsert)
+    ins_query, mapped_ids, lines = crm_partner.prepare_insert(crm_partner_toinsert)
     partners_mapping.update(mapped_ids)
     accounting_partner.store_mapping_table(partners_mapping)
-    accounting.cursor.execute(ins_query)
+    lines = ", ".join(lines)
+    data = (lines, )
+    accounting.cursor.execute(ins_query, data)
 
 
 def migrate_employer_partner(crm_partner, accounting_partner, user_mapping_dict, partners_mapping):
@@ -106,10 +108,10 @@ def migrate_employer_partner(crm_partner, accounting_partner, user_mapping_dict,
                 crm_partner['parent_id'] = partners_mapping[crm_partner['parent_id']]
             crm_partner_toinsert.append([crm_partner[k] for k in crm_partner])
 
-    ins_query, mapped_ids = crm_partner.prepare_insert(crm_partner_toinsert)
+    ins_query, mapped_ids, lines = crm_partner.prepare_insert(crm_partner_toinsert)
     partners_mapping.update(mapped_ids)
     accounting_partner.store_mapping_table(partners_mapping)
-    accounting.cursor.execute(ins_query)
+    accounting.cursor.execute(ins_query, ', '. join(lines))
 
 
 def migrate_leads():
