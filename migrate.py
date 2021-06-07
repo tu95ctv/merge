@@ -56,7 +56,7 @@ def migrate_company_partner(crm_partner, accounting_partner, user_mapping_dict, 
     crm_partner_toinsert = []
     accounting.cursor.execute("SELECT * FROM res_partner WHERE company_type ='company' AND vat IS NOT NULL")
     all_accounting_partner = accounting.cursor.dictfetchall()
-    crm.cursor.execute("SELECT * FROM res_partner WHERE company_type ='company' AND vat IS NOT NULL AND id=82585")
+    crm.cursor.execute("SELECT * FROM res_partner WHERE company_type ='company' AND vat IS NOT NULL")
     all_crm_partner = crm.cursor.dictfetchall()
     for acc_partner in all_accounting_partner:
         if acc_partner['vat']:
@@ -78,8 +78,8 @@ def migrate_company_partner(crm_partner, accounting_partner, user_mapping_dict, 
     ins_query, mapped_ids, lines = crm_partner.prepare_insert(crm_partner_toinsert)
     partners_mapping.update(mapped_ids)
     accounting_partner.store_mapping_table(partners_mapping)
-    lines = ", ".join(lines)
-    accounting.cursor.execute(ins_query, (lines, ))
+    query = accounting.cursor.mogrify(ins_query, lines).decode('utf8')
+    accounting.cursor.execute(query)
 
 
 def migrate_employer_partner(crm_partner, accounting_partner, user_mapping_dict, partners_mapping):

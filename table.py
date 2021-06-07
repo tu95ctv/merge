@@ -77,7 +77,9 @@ class Table(object):
             lines.append(tuple(line))
 
             next_id += 1
-        return insert_query + " %s", mapped_ids, lines
+        args_str = ','.join(['%s'] * len(data))
+        insert_query += args_str
+        return insert_query, mapped_ids, lines
 
     def update(self):
         pass
