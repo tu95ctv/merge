@@ -1,94 +1,49 @@
-from datetime import datetime
-from decimal import Decimal
+from .table import Table
 
 
-class Table(object):
-    def __init__(self, name, db):
-        self.name = name
-        self.mapping_name = self.name + "_mapping"
-        self.db = db
-        self.cr = db.cursor
-        self.columns = self.get_columns()
+class ResPartner(Table):
+    _name = 'res_partner'
+
+    def __init__(self, db):
+        super(ResPartner, self).__init__(db)
         self.columns.remove('parent_id')
         self.columns.remove('commercial_partner_id')
         self.columns_str = self.get_columns_str()
 
-    def get_highest_id(self):
-        self.cr.execute("SELECT last_value FROM %s_id_seq" % self.name)
-        res = self.cr.fetchall()
-        return res[0][0]
+    def migrate(self, crm_datas):
+        self.init_mapping_table()
+        partners_mapping = {}
 
-    def get_columns(self):
-        #TODO: Should store this in object
-        self.cr.execute("""
-        SELECT
-            column_name 
-        FROM
-            information_schema.columns
-        WHERE table_schema = 'public' AND table_name = '%s';
-        """ % self.name)
-        res = self.cr.fetchall()
-        return [x[0] for x in res]
+        self.db.cursor.execute("SELECT * FROM res_users_mapping")
+        users_mapping = self.db.cursor.dictfetchall()
+        user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
 
-    def get_columns_str(self):
-        return ', '.join([x if x != 'customerName' else '"%s"' % x for x in self.columns])
-
-    def select_all(self):
-        self.cr.execute("SELECT %s FROM %s" % (self.columns_str, self.name))
-        return self.cr.dictfetchall()
-
-    def select(self):
-        pass
-
-    def init_mapping_table(self):
-        init_mapping_tbl_query = """
-        DROP TABLE IF EXISTS %s;
-        CREATE TABLE %s (
-            crm_id INT,
-            accounting_id INT
-        ); 
-        """ % (self.mapping_name, self.mapping_name)
-        self.cr.execute(init_mapping_tbl_query)
-
-    def store_mapping_table(self, data):
-        ins_query = "INSERT INTO %s (crm_id, accounting_id) VALUES " % self.mapping_name
-        ins_list = []
-        for key in data:
-            ins_list.append(str((key, data[key])))
-        ins_query += ", ".join(ins_list)
-        self.cr.execute(ins_query)
-
-    def prepare_insert(self, data):
-        mapped_ids = {}
-        insert_query = '''INSERT INTO %s (%s) VALUES''' % (self.name, self.columns_str)
-        next_id = self.get_highest_id() + 1
-        lines = []
-        for line in data:
-            line = list(line)
-            # Mapped source id & target id
-            mapped_ids[line[0]] = next_id
-            # set new id
-            line[0] = next_id
-            # set new commercial partner
-            # line = self.standardlize_ins_data(line)
-            # line = str(tuple(line))
-            # line = line.replace("'Null'", "Null")
-            lines.append(tuple(line))
-
-            next_id += 1
-        args_str = ','.join(['%s'] * len(data))
-        insert_query += args_str
-        return insert_query, mapped_ids, lines
-
-    def update(self):
-        pass
-
-    def standardlize_ins_data(self, line):
-        for i, val in enumerate(line):
-            if val == None:
-                line[i] = 'Null'
-            if isinstance(val, datetime):
-                line[i] = str(val)
-            if isinstance(val, Decimal):
-                line[i] = float(val)
-        return line
+        existing_partner = {}
+        crm_partner_toinsert = []
+        self.db.cursor.execute("SELECT %s FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL" % self.columns_str)
+        all_accounting_partner = self.db.cursor.dictfetchall()
+        all_crm_partner = crm_datas
+        for acc_partner in all_accounting_partner:
+            if acc_partner['ref']:
+                existing_partner[acc_partner['ref']] = acc_partner['id']
+        partner_user_fields = [
+            'write_uid',
+            'create_uid',
+            'user_id'
+        ]
+        next_id = int(self.get_highest_id()) + 1
+        for partner in all_crm_partner:
+            if existing_partner.get(partner['ref'], False):
+                partners_mapping[partner['id']] = existing_partner.get(partner['ref'])
+            else:
+                for field in partner_user_fields:
+                    if partner[field] in user_mapping_dict:
+                        partner[field] = user_mapping_dict[partner[field]]
+                partners_mapping[partner['id']] = next_id
+                partner['id'] = next_id
+                crm_partner_toinsert.append(tuple([partner[k] for k in partner]))
+        ins_query = self.prepare_insert(crm_partner_toinsert)
+        self.store_mapping_table(partners_mapping)
+        query = self.db.cursor.mogrify(ins_query, crm_partner_toinsert).decode('utf8')
+        self.db.cursor.execute(query)
+        self.db.close()

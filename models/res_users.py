@@ -1,92 +1,34 @@
-from datetime import datetime
+from .table import Table
 
 
-class Table(object):
-    def __init__(self, name, db):
-        self.name = name
-        self.mapping_name = self.name + "_mapping"
-        self.db = db
-        self.cr = db.cursor
-        self.columns = self.get_columns()
-        self.columns_str = self.get_columns_str()
+class ResUser(Table):
+    _name = 'res_users'
 
-    def get_highest_id(self):
-        self.cr.execute("SELECT last_value FROM %s_id_seq" % self.name)
-        res = self.cr.fetchall()
-        return res[0][0]
+    def migrate(self, crm_datas):
 
-    def get_columns(self):
-        #TODO: Should store this in object
-        self.cr.execute("""
-        SELECT
-            column_name 
-        FROM
-            information_schema.columns
-        WHERE table_schema = 'public' AND table_name = '%s';
-        """ % self.name)
-        res = self.cr.fetchall()
-        return [x[0] for x in res]
+        self.init_mapping_table()
+        all_accounting_users = self.select_all()
+        all_crm_users = crm_datas
+        users_mapping = {}
+        existing_users = {}
+        crm_users_toinsert = []
+        for acc_user in all_accounting_users:
+            existing_users[acc_user['login']] = acc_user['id']
 
-    def get_columns_str(self):
-        columns = self.columns
-        columns.remove('partner_id')
-        columns.remove('write_uid')
-        columns.remove('create_uid')
-        return ', '.join([x if x != 'sellerCode' else '"%s"' % x for x in columns])
-
-    def select_all(self):
-        self.cr.execute("SELECT %s FROM %s" % (self.columns_str, self.name))
-        return self.cr.dictfetchall()
-
-    def select(self):
-        pass
-
-    def init_mapping_table(self):
-        init_mapping_tbl_query = """
-        DROP TABLE IF EXISTS %s;
-        CREATE TABLE %s (
-            crm_id INT,
-            accounting_id INT
-        ); 
-        """ % (self.mapping_name, self.mapping_name)
-        self.cr.execute(init_mapping_tbl_query)
-
-    def store_mapping_table(self, data):
-        ins_query = "INSERT INTO %s (crm_id, accounting_id) VALUES " % self.mapping_name
-        ins_list = []
-        for key in data:
-            ins_list.append(str((key, data[key])))
-        ins_query += ", ".join(ins_list)
-        self.cr.execute(ins_query)
-
-    def prepare_insert(self, data):
-        mapped_ids = {}
-        columns = self.columns_str
-        insert_query = "INSERT INTO %s (%s) VALUES " % (self.name, columns)
-        next_id = self.get_highest_id() + 1
-        lines = []
-        for line in data:
-            line = list(line)
-            # Mapped source id & target id
-            mapped_ids[line[0]] = next_id
-            line[0] = next_id
-
-            line = self.standardlize_ins_data(line)
-            line = str(tuple(line))
-            line = line.replace("'Null'", "Null")
-            lines.append(line)
-
-            next_id += 1
-        insert_query += ', '.join(lines)
-        return insert_query, mapped_ids
-
-    def update(self):
-        pass
-
-    def standardlize_ins_data(self, line):
-        for i, val in enumerate(line):
-            if val == None:
-                line[i] = 'Null'
-            if isinstance(val, datetime):
-                line[i] = str(val)
-        return line
+        next_id = int(self.get_highest_id()) + 1
+        for crm_user in all_crm_users:
+            if existing_users.get(crm_user['login'], False):
+                users_mapping[crm_user['id']] = existing_users.get(crm_user['login'])
+            else:
+                # Ugly hack to map sale_team_id
+                if crm_user['sale_team_id'] == 51:
+                    crm_user['sale_team_id'] = 52
+                users_mapping[crm_user['id']] = next_id
+                crm_user['id'] = next_id
+                next_id += 1
+                crm_users_toinsert.append(tuple([crm_user[k] for k in crm_user]))
+        ins_query = self.prepare_insert(crm_users_toinsert)
+        self.store_mapping_table(users_mapping)
+        query = self.db.cursor.mogrify(ins_query, crm_users_toinsert).decode('utf8')
+        self.db.cursor.execute(query)
+        self.db.close()
