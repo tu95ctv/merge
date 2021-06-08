@@ -9,8 +9,6 @@ class Table(object):
         self.db = db
         self.cr = db.cursor
         self.columns = self.get_columns()
-        self.columns.remove('parent_id')
-        self.columns.remove('commercial_partner_id')
         self.columns_str = self.get_columns_str()
 
     def get_highest_id(self):

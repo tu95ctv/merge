@@ -1,13 +1,10 @@
 from tools import config
 from db import Database
 from table import Table
-from psycopg2.extensions import adapt
+
 
 crm = Database(config.options['CRM'])
 accounting = Database(config.options['ACCOUNTING'])
-
-def migrate_sales_team():
-    pass
 
 def migrate_user():
     crm_users = Table('res_users', crm)
@@ -31,7 +28,7 @@ def migrate_user():
     ins_query, mapped_ids = crm_users.prepare_insert(crm_users_toinsert)
     users_mapping.update(mapped_ids)
     accounting_users.store_mapping_table(users_mapping)
-    # accounting.cursor.execute(ins_query)
+    accounting.cursor.execute(ins_query)
     accounting.close()
 
 
@@ -114,8 +111,47 @@ def migrate_employer_partner(crm_partner, accounting_partner, user_mapping_dict,
 
 
 def migrate_leads():
-    pass
+    crm_lead = Table('crm_lead', crm)
+    accounting_lead = Table('res_users', accounting)
+    crm.cursor.execute("""
+        SELECT 
+            crm_lead.*
+        FROM crm_lead 
+        INNER JOIN res_partner partner ON partner.id = crm_lead.partner_id
+        WHERE partner.company_type ='employer' AND partner.ref IS NOT NULL
+    """)
+    all_crm_leads = crm.cursor.dictfetchall()
+    accounting.cursor.execute("SELECT * FROM res_users_mapping")
+    users_mapping = accounting.cursor.dictfetchall()
+    user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
+
+    accounting.cursor.execute("SELECT * FROM res_partner_mapping")
+    partner_mapping = accounting.cursor.dictfetchall()
+    partner_mapping_dict = {x['crm_id']: x['accounting_id'] for x in partner_mapping}
+
+    leads_toinsert = []
+    for lead in all_crm_leads:
+        if lead['partner_id'] in partner_mapping_dict:
+            lead['partner_id'] = partner_mapping_dict[lead['partner_id']]
+        if lead['user_id'] in user_mapping_dict:
+            lead['user_id'] = user_mapping_dict[lead['user_id']]
+        if lead['create_uid'] in user_mapping_dict:
+            lead['create_uid'] = user_mapping_dict[lead['create_uid']]
+        if lead['write_uid'] in user_mapping_dict:
+            lead['write_uid'] = user_mapping_dict[lead['write_uid']]
+        if lead['team_id'] == 51:
+            lead['sale_team_id'] = 52
+        leads_toinsert.append([lead[k] for k in lead])
+    partner_mapping_dict.clear()
+    del partner_mapping
+    ins_query, mapped_ids, lines = crm_lead.prepare_insert(leads_toinsert)
+    query = accounting.cursor.mogrify(ins_query, lines).decode('utf8')
+    accounting.cursor.execute(query)
+
+
+
+    accounting.close()
 
 
 if __name__ == '__main__':
-    migrate_partner()
+    migrate_leads()
