@@ -21,7 +21,7 @@ class Table(object):
         FROM
             information_schema.columns
         WHERE table_schema = 'public' AND table_name = '%s';
-        """ % self.name)
+        """ % self._name)
         res = self.cr.fetchall()
         return [x[0] for x in res]
 
@@ -51,7 +51,7 @@ class Table(object):
         self.cr.execute(ins_query)
 
     def prepare_insert(self, data):
-        insert_query = '''INSERT INTO %s (%s) VALUES''' % (self._name, self.columns_str)
+        insert_query = '''INSERT INTO %s (%s) VALUES ''' % (self._name, self.columns_str)
         args_str = ','.join(['%s'] * len(data))
         insert_query += args_str
         return insert_query

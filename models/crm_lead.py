@@ -1,10 +1,10 @@
-from .table import Table
+from .base import Table
 
 
 class CrmLead(Table):
     _name = 'crm_lead'
 
-    def migrate_leads(self, crm_datas):
+    def migrate(self, crm_datas):
 
         all_crm_leads = crm_datas
         self.db.cursor.execute("SELECT * FROM res_users_mapping")
@@ -32,8 +32,8 @@ class CrmLead(Table):
         del partner_mapping
         chunks = [leads_toinsert[x:x + 100] for x in range(0, len(leads_toinsert), 100)]
         for chunk in chunks:
-            ins_query, mapped_ids, lines = self.prepare_insert(chunk)
-            query = self.db.cursor.mogrify(ins_query, lines).decode('utf8')
+            ins_query = self.prepare_insert(chunk)
+            query = self.db.cursor.mogrify(ins_query, chunk).decode('utf8')
             self.db.cursor.execute(query)
             self.db.conn.commit()
         self.db.close()

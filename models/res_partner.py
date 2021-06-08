@@ -1,4 +1,4 @@
-from .table import Table
+from .base import Table
 
 
 class ResPartner(Table):
