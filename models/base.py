@@ -33,9 +33,8 @@ class Table(object):
         return self.cr.dictfetchall()
 
     def init_mapping_table(self):
-        init_mapping_tbl_query = """
-        DROP TABLE IF EXISTS %s;
-        CREATE TABLE %s (
+        init_mapping_tbl_query = """        
+        CREATE TABLE IF NOT EXISTS %s (
             crm_id INT,
             accounting_id INT
         ); 
