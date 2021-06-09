@@ -38,7 +38,7 @@ class Table(object):
             crm_id INT,
             accounting_id INT
         ); 
-        """ % (self.mapping_name, self.mapping_name)
+        """ % self.mapping_name
         self.cr.execute(init_mapping_tbl_query)
 
     def store_mapping_table(self, data):
