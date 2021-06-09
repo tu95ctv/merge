@@ -22,13 +22,14 @@ def migrate_partner():
 def migrate_leads():
     crm_lead = CrmLead(Database(config.options['CRM']))
     accounting_lead = CrmLead(Database(config.options['ACCOUNTING']))
+    columns = ','.join(['crm_lead.%s' % x for x in accounting_lead.columns])
     crm_lead.db.cursor.execute("""
         SELECT 
-            crm_lead.*
+            %s
         FROM crm_lead 
         INNER JOIN res_partner partner ON partner.id = crm_lead.partner_id
         WHERE partner.company_type ='employer' AND partner.ref IS NOT NULL
-    """)
+    """ % columns)
     all_crm_leads = crm_lead.db.cursor.dictfetchall()
     accounting_lead.migrate(all_crm_leads)
 
