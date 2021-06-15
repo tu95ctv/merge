@@ -13,6 +13,10 @@ class Table(object):
         res = self.cr.fetchall()
         return res[0][0]
 
+    def set_highest_id(self, highest_id):
+        res = self.cr.execute("ALTER SEQUENCE %s_id_seq RESTART WITH %s;" % (self._name, highest_id))
+        return res
+
     def get_columns(self):
         # TODO: Should store this in object
         self.cr.execute("""

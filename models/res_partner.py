@@ -13,7 +13,6 @@ class ResPartner(Table):
     def migrate(self, crm_datas):
         self.init_mapping_table()
         partners_mapping = {}
-
         self.db.cursor.execute("SELECT * FROM res_users_mapping")
         users_mapping = self.db.cursor.dictfetchall()
         user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
@@ -46,4 +45,5 @@ class ResPartner(Table):
         self.store_mapping_table(partners_mapping)
         query = self.db.cursor.mogrify(ins_query, crm_partner_toinsert).decode('utf8')
         self.db.cursor.execute(query)
-        self.db.close()
+        self.set_highest_id(next_id)
+

@@ -46,3 +46,4 @@ class CrmLead(Table):
                 raise e
             self.db.conn.commit()
         self.db.close()
+        self.set_highest_id(next_id)
