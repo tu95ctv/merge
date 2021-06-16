@@ -4,7 +4,7 @@ from .base import Table
 class CrmLead(Table):
     _name = 'crm_lead'
 
-    def migrate(self, crm_datas):
+    def migrate(self, crm_datas, crm):
         all_crm_leads = crm_datas
 
         # Get user mapping datas
@@ -35,8 +35,9 @@ class CrmLead(Table):
         partner_mapping_dict.clear()
         del partner_mapping
         # Split data to 10k each chunk
+        # TODO: use multiprocess to speed up insert data
         chunks = [tuple(leads_toinsert[x:x + 10000]) for x in range(0, len(leads_toinsert), 10000)]
-        ins_query = self.prepare_insert(chunks[0])
+        ins_query = crm.prepare_insert(chunks[0])
         for i, chunk in enumerate(chunks):
 
             query = self.db.cursor.mogrify(ins_query, chunk).decode('utf8')

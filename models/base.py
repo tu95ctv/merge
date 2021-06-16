@@ -1,12 +1,22 @@
 class Table(object):
     _name = ''
-
+    _update_key = ''
+    cursed_columns = ('customerName', 'sellerCode')
     def __init__(self, db):
         self.mapping_name = self._name + "_mapping"
         self.db = db
         self.cr = db.cursor
         self.columns = self.get_columns()
         self.columns_str = self.get_columns_str()
+        self.noupdate_fields = self.get_noupdate_fields()
+
+    def get_noupdate_fields(self):
+        return [
+            'id',
+            'create_uid',
+            'write_uid',
+            'company_id'
+        ]
 
     def get_highest_id(self):
         self.cr.execute("SELECT last_value FROM %s_id_seq" % self._name)
@@ -30,7 +40,8 @@ class Table(object):
         return [x[0] for x in res]
 
     def get_columns_str(self):
-        return ', '.join([x if x != 'customerName' else '"%s"' % x for x in self.columns])
+
+        return ', '.join([x if x not in self.cursed_columns else '"%s"' % x for x in self.columns])
 
     def select_all(self):
         self.cr.execute("SELECT %s FROM %s" % (self.columns_str, self._name))
@@ -59,5 +70,15 @@ class Table(object):
         insert_query += args_str
         return insert_query
 
-    def migrate(self, crm_datas):
+    def prepare_update(self, data):
+        def _where():
+            return '{key} = %s'.format(key=self._update_key)
+
+        def _values(line):
+            return ','.join(["{k} = %s".format(k=k) if k not in self.cursed_columns else '"{k}" = %s'.format(k=k) for k, v in line.items() if k not in self.noupdate_fields])
+
+        query = "UPDATE %s SET %s WHERE %s" % (self._name, _values(data), _where())
+        return query
+
+    def migrate(self, crm_datas, crm):
         raise Warning("NOT IMPLEMENT")
