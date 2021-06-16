@@ -37,14 +37,9 @@ class CrmLead(Table):
         # Split data to 10k each chunk
         # TODO: use multiprocess to speed up insert data
         chunks = [tuple(leads_toinsert[x:x + 10000]) for x in range(0, len(leads_toinsert), 10000)]
-        ins_query = crm.prepare_insert(chunks[0])
         for i, chunk in enumerate(chunks):
-
+            ins_query = crm.prepare_insert(chunk, lead.keys())
             query = self.db.cursor.mogrify(ins_query, chunk).decode('utf8')
-            try:
-                self.db.cursor.execute(query)
-            except Exception as e:
-                raise e
-            self.db.conn.commit()
-        self.db.close()
+            self.db.cursor.execute(query)
         self.set_highest_id(next_id)
+        self.db.close()

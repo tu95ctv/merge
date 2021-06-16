@@ -56,7 +56,7 @@ class ResUser(Table):
 
         # Insert new users
         if crm_users_toinsert:
-            ins_query = crm.prepare_insert(crm_users_toinsert)
+            ins_query = crm.prepare_insert(crm_users_toinsert, crm_user.keys())
             query = self.db.cursor.mogrify(ins_query, crm_users_toinsert).decode('utf8')
             self.db.cursor.execute(query)
             self.set_highest_id(next_id)
@@ -77,8 +77,8 @@ class ResUser(Table):
 
     def update_partner_id(self, user_partner):
         queries = []
-        for user_id, partner_id in user_partner.items():
-            queries.append("UPDATE res_users set partner_id = %s WHERE id = %s" (partner_id, user_id))
+        for login, partner_id in user_partner.items():
+            queries.append("UPDATE res_users set partner_id = %s WHERE login = '%s'" % (partner_id, login))
 
         queries = ';'.join(queries)
         self.db.cursor.execute(queries)

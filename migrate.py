@@ -19,15 +19,13 @@ def migrate_partner():
 
     # Get partner that link to user from CRM side
     accounting_partner.db.cursor.execute("SELECT login FROM res_users WHERE partner_id IS NULL")
-    logins = (x[0] for x in accounting_partner.db.cursor.fetchall())
-    crm_partner.db.cursor.execute("SELECT partner_id FROM res_users WHERE login in (%s)" % (logins, ))
-    user_partner = [x[0] for x in crm_partner.db.cursor.fetchall()]
+    logins = tuple(x[0] for x in accounting_partner.db.cursor.fetchall())
+    crm_partner.db.cursor.execute("SELECT partner_id FROM res_users WHERE login in %s" % (logins, ))
+    user_partner = tuple(x[0] for x in crm_partner.db.cursor.fetchall())
     crm_partner.db.cursor.execute(
-        "SELECT %s FROM res_partner WHERE company_type ='employer' AND id IN (%s)" % (crm_partner.columns_str, user_partner))
+        "SELECT %s FROM res_partner WHERE id IN %s" % (crm_partner.columns_str, user_partner))
     all_crm_partner.extend(crm_partner.db.cursor.dictfetchall())
     accounting_partner.migrate(all_crm_partner, crm_partner)
-    map_user_partner_id()
-    accounting_partner.db.close()
 
 
 def map_user_partner_id():
@@ -36,9 +34,9 @@ def map_user_partner_id():
     accounting_users = ResUser(Database(config.options['ACCOUNTING']))
     # Get all users from accounting which doesn't have partner_id
     accounting_users.db.cursor.execute("SELECT login FROM res_users WHERE partner_id IS NULL")
-    user_logins = accounting_users.db.cursor.fetchall()
+    user_logins = tuple(x[0] for x in accounting_users.db.cursor.fetchall())
     # Get all users from CRM with corresponding logins
-    crm_users.db.cursor.execute("SELECT login, partner_id FROM res_users WHERE login in (%s)" % user_logins)
+    crm_users.db.cursor.execute("SELECT login, partner_id FROM res_users WHERE login in %s" % (user_logins, ))
     user_partners = crm_users.db.cursor.dictfetchall()
     # Get partner mapping data
     accounting_users.db.cursor.execute("SELECT crm_id, accounting_id FROM res_partner_mapping")
@@ -65,6 +63,7 @@ def migrate_leads():
 
 
 if __name__ == '__main__':
-    migrate_user()
+    # migrate_user()
     # migrate_partner()
-    # migrate_leads()
+    # map_user_partner_id()
+    migrate_leads()
