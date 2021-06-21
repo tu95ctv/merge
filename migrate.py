@@ -59,7 +59,7 @@ def migrate_leads():
         FROM crm_lead 
         INNER JOIN res_partner partner ON partner.id = crm_lead.partner_id
         WHERE partner.company_type ='employer' AND partner.ref IS NOT NULL
-        AND create_uid = 211
+        AND crm_lead.create_uid = 211
     """ % columns)
     all_crm_leads = crm_lead.db.cursor.dictfetchall()
     accounting_lead.migrate(all_crm_leads, crm_lead)
