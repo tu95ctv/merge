@@ -13,8 +13,9 @@ def migrate_user():
 def migrate_partner():
     crm_partner = ResPartner(Database(config.options['CRM']))
     accounting_partner = ResPartner(Database(config.options['ACCOUNTING']))
+    # Note: 211 is ID of API user
     crm_partner.db.cursor.execute(
-        "SELECT %s FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL" % crm_partner.columns_str)
+        "SELECT %s FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL AND create_uid = 211" % crm_partner.columns_str)
     all_crm_partner = crm_partner.db.cursor.dictfetchall()
 
     # Get partner that link to user from CRM side
@@ -51,19 +52,21 @@ def migrate_leads():
     crm_lead = CrmLead(Database(config.options['CRM']))
     accounting_lead = CrmLead(Database(config.options['ACCOUNTING']))
     columns = ','.join(['crm_lead.%s' % x for x in accounting_lead.columns])
+    # Note: 211 is ID of API user
     crm_lead.db.cursor.execute("""
         SELECT 
             %s
         FROM crm_lead 
         INNER JOIN res_partner partner ON partner.id = crm_lead.partner_id
         WHERE partner.company_type ='employer' AND partner.ref IS NOT NULL
+        AND create_uid = 211
     """ % columns)
     all_crm_leads = crm_lead.db.cursor.dictfetchall()
     accounting_lead.migrate(all_crm_leads, crm_lead)
 
 
 if __name__ == '__main__':
-    # migrate_user()
-    # migrate_partner()
-    # map_user_partner_id()
+    migrate_user()
+    migrate_partner()
+    map_user_partner_id()
     migrate_leads()
