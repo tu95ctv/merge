@@ -1,5 +1,7 @@
 import configparser as ConfigParser
-
+import logging
+FORMAT = '%(asctime)-15s %(message)s'
+logging.basicConfig(format=FORMAT)
 
 def parse_config():
     p = ConfigParser.RawConfigParser()

@@ -1,10 +1,15 @@
+import logging
+logger = logging.getLogger('SIEUVIET_MIGRATE')
+
 class Table(object):
     _name = ''
     # consider change this to list
     _update_key = ''
     cursed_columns = ('customerName', 'sellerCode')
 
-    def __init__(self, db):
+    def __init__(self, db, name=''):
+        if name:
+            self._name = name
         self.mapping_name = self._name + "_mapping"
         self.db = db
         self.cr = db.cursor
@@ -26,6 +31,7 @@ class Table(object):
         return res[0][0]
 
     def set_highest_id(self, highest_id):
+        logger.info("Set %s as highest ID for %s" % (highest_id, self._name))
         res = self.cr.execute("ALTER SEQUENCE %s_id_seq RESTART WITH %s;" % (self._name, highest_id))
         return res
 
@@ -49,6 +55,7 @@ class Table(object):
         return self.cr.dictfetchall()
 
     def init_mapping_table(self):
+        logger.info("Init mapping table for %s" % self._name)
         init_mapping_tbl_query = """        
         CREATE TABLE IF NOT EXISTS %s (
             crm_id INT,
@@ -58,6 +65,7 @@ class Table(object):
         self.cr.execute(init_mapping_tbl_query)
 
     def store_mapping_table(self, data):
+        logger.info("Store mapping table for %s" % self._name)
         ins_query = "INSERT INTO %s (crm_id, accounting_id) VALUES " % self.mapping_name
         ins_list = []
         for key in data:
@@ -84,5 +92,22 @@ class Table(object):
         query = "UPDATE %s SET %s WHERE %s" % (self._name, _values(data), _where())
         return query
 
-    def migrate(self, crm_datas, crm):
-        raise NotImplementedError()
+    def migrate(self, to_inserts, crm, clear_acc_data=True):
+        if clear_acc_data:
+            self.db.cursor.execute("DELETE FROM %s" % self._name)
+        # Get user mapping datas
+        self.db.cursor.execute("SELECT * FROM res_users_mapping")
+        users_mapping = self.db.cursor.dictfetchall()
+        user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
+        data = []
+        # next_id = int(self.get_highest_id()) + 1
+        for cll in to_inserts:
+            for f in ['user_id', 'create_uid', 'write_uid']:
+                if f in cll and cll[f] in user_mapping_dict:
+                    cll[f] = user_mapping_dict[cll[f]]
+            data.append(tuple(cll[k] for k in cll))
+
+        ins_query = crm.prepare_insert(data, to_inserts[0].keys())
+        query = self.db.cursor.mogrify(ins_query, data).decode('utf8')
+        self.db.cursor.execute(query)
+        self.db.close()
