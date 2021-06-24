@@ -122,6 +122,23 @@ def clear_crm_lead_track_level_up():
     accounting.db.cursor.execute("DELETE FROM crm_lead_track_level_up")
     accounting.db.close()
 
+def migrate_crm_lead_track_level_up():
+    logger.info("Migrating crm_lead_track_level_up ....")
+    crm = Table(Database(config.options['CRM']), 'crm_lead_track_level_up')
+    accounting = Table(Database(config.options['ACCOUNTING']), 'crm_lead_track_level_up')
+    crm.db.cursor.execute("""SELECT *
+     FROM crm_lead_track_level_up 
+     WHERE lead_id IN (
+        SELECT 
+            crm_lead.id
+        FROM crm_lead 
+        INNER JOIN res_partner partner ON partner.id = crm_lead.partner_id
+        WHERE partner.company_type ='employer' AND partner.ref IS NOT NULL
+        AND partner.create_uid = 211
+     )""")
+    data = crm.db.cursor.dictfetchall()
+    accounting.migrate(data, crm)
+
 
 if __name__ == '__main__':
     migrate_user()
@@ -134,6 +151,6 @@ if __name__ == '__main__':
     clear_crm_lead_track_level_up()
     migrate_master_data('crm_stage')
     migrate_leads()
-    migrate_master_data('crm_lead_track_level_up')
+    migrate_crm_lead_track_level_up()
     migrate_master_data('crm_tag')
     migrate_crm_tag_rel()
