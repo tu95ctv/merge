@@ -122,6 +122,7 @@ def clear_crm_lead_track_level_up():
     accounting.db.cursor.execute("DELETE FROM crm_lead_track_level_up")
     accounting.db.close()
 
+
 def migrate_crm_lead_track_level_up():
     logger.info("Migrating crm_lead_track_level_up ....")
     crm = Table(Database(config.options['CRM']), 'crm_lead_track_level_up')
@@ -140,17 +141,51 @@ def migrate_crm_lead_track_level_up():
     accounting.migrate(data, crm)
 
 
+def migrate_res_partner_category():
+    logger.info("Migrating res_partner_category ....")
+    crm = Table(Database(config.options['CRM']), 'res_partner_category')
+    accounting = Table(Database(config.options['ACCOUNTING']), 'res_partner_category')
+    crm.db.cursor.execute("""SELECT * FROM res_partner_category WHERE id > 20""")
+    data = crm.db.cursor.dictfetchall()
+    accounting.migrate(data, crm, clear_acc_data=False)
+
+
+def migrate_res_partner_res_partner_category_rel():
+    logger.info("Migrating crm_lead ....")
+    crm = ResPartnerResPartnerCategoryRel(Database(config.options['CRM']))
+    accounting = ResPartnerResPartnerCategoryRel(Database(config.options['ACCOUNTING']))
+    # Note: 211 is ID of API user
+    crm.db.cursor.execute("""
+            SELECT 
+                *
+            FROM res_partner_res_partner_category_rel
+            WHERE partner_id IN (
+                SELECT 
+                id 
+                FROM res_partner 
+                WHERE company_type ='employer' AND ref IS NOT NULL AND create_uid = 211
+            ) 
+        """)
+    datas = crm.db.cursor.dictfetchall()
+    accounting.migrate(datas, crm)
+
+
 if __name__ == '__main__':
-    migrate_user()
-    migrate_utm_medium()
-    migrate_partner()
-    map_user_partner_id()
-    clear_accounting_crm_lead()
-    migrate_master_data('crm_lost_reason')
-    migrate_master_data('crm_lead_lost')
-    clear_crm_lead_track_level_up()
-    migrate_master_data('crm_stage')
-    migrate_leads()
-    migrate_crm_lead_track_level_up()
-    migrate_master_data('crm_tag')
-    migrate_crm_tag_rel()
+    # migrate_user()
+    # migrate_utm_medium()
+    # migrate_partner()
+    # map_user_partner_id()
+    # clear_accounting_crm_lead()
+    # migrate_master_data('crm_lost_reason')
+    # migrate_master_data('crm_lead_lost')
+    # clear_crm_lead_track_level_up()
+    # migrate_master_data('crm_stage')
+    # migrate_leads()
+    # migrate_crm_lead_track_level_up()
+    # migrate_master_data('crm_tag')
+    # migrate_crm_tag_rel()
+    # migrate_master_data('crm_stage_sub_rel')
+    # migrate_master_data('crm_stage_lost_reason_rel')
+    # migrate_master_data('crm_stage_followup_result_rel')
+    # migrate_res_partner_category()
+    migrate_res_partner_res_partner_category_rel()
