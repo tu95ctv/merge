@@ -1,7 +1,9 @@
+import logging
+
 from db import Database
 from models import *
 from tools import config
-import logging
+
 logger = logging.getLogger('SIEUVIET_MIGRATE')
 
 
@@ -106,11 +108,13 @@ def migrate_crm_tag_rel():
     data = crm.db.cursor.dictfetchall()
     accounting.migrate(data, crm)
 
+
 def clear_accounting_crm_lead():
     logger.info("Deleting Accounting crm_lead")
     accounting = Table(Database(config.options['ACCOUNTING']), 'crm_lead')
     accounting.db.cursor.execute("DELETE FROM crm_lead")
     accounting.db.close()
+
 
 def clear_crm_lead_track_level_up():
     logger.info("Deleting Accounting crm_lead_track_level_up")
@@ -118,18 +122,18 @@ def clear_crm_lead_track_level_up():
     accounting.db.cursor.execute("DELETE FROM crm_lead_track_level_up")
     accounting.db.close()
 
+
 if __name__ == '__main__':
-    # migrate_user()
-    # migrate_utm_medium()
-    # migrate_partner()
-    # map_user_partner_id()
-    # clear_accounting_crm_lead()
-    # migrate_master_data('crm_lost_reason')
-    # migrate_master_data('crm_lead_lost')
-    # clear_crm_lead_track_level_up()
-    # migrate_master_data('crm_stage')
-    # migrate_leads()
-    # migrate_master_data('crm_lead_track_level_up')
+    migrate_user()
+    migrate_utm_medium()
+    migrate_partner()
+    map_user_partner_id()
+    clear_accounting_crm_lead()
+    migrate_master_data('crm_lost_reason')
+    migrate_master_data('crm_lead_lost')
+    clear_crm_lead_track_level_up()
+    migrate_master_data('crm_stage')
+    migrate_leads()
+    migrate_master_data('crm_lead_track_level_up')
     migrate_master_data('crm_tag')
     migrate_crm_tag_rel()
-
