@@ -9,6 +9,7 @@ logger = logging.getLogger('SIEUVIET_MIGRATE')
 
 def migrate_user():
     logger.info("Migrating res.users ....")
+    # TODO: should we init this elsewhere ?
     crm_users = ResUser(Database(config.options['CRM']))
     accounting_users = ResUser(Database(config.options['ACCOUNTING']))
     all_crm_users = crm_users.select_all()
@@ -170,6 +171,20 @@ def migrate_res_partner_res_partner_category_rel():
     accounting.migrate(datas, crm)
 
 
+def migrate_crm_team():
+    crm = CrmTeam(Database(config.options['CRM']))
+    accounting = CrmTeam(Database(config.options['ACCOUNTING']))
+    crm.db.cursor.execute("SELECT * FROM crm_team")
+    datas = crm.db.cursor.dictfetchall()
+    accounting.migrate(datas, crm)
+
+def migrate_users_crm_team():
+    crm = UsersCrmTeam(Database(config.options['CRM']))
+    accounting = UsersCrmTeam(Database(config.options['ACCOUNTING']))
+    crm.db.cursor.execute("SELECT * FROM users_crm_team")
+    datas = crm.db.cursor.dictfetchall()
+    accounting.migrate(datas, crm)
+
 if __name__ == '__main__':
     # migrate_user()
     # migrate_utm_medium()
@@ -188,4 +203,6 @@ if __name__ == '__main__':
     # migrate_master_data('crm_stage_lost_reason_rel')
     # migrate_master_data('crm_stage_followup_result_rel')
     # migrate_res_partner_category()
-    migrate_res_partner_res_partner_category_rel()
+    # migrate_res_partner_res_partner_category_rel()
+    migrate_crm_team()
+    migrate_users_crm_team()
