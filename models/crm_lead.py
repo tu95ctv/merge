@@ -4,17 +4,31 @@ from .base import Table
 class CrmLead(Table):
     _name = 'crm_lead'
 
-    def migrate(self, crm_datas, crm):
-        all_crm_leads = crm_datas
+    def get_crm_data(self):
+        # columns = ','.join(['crm_lead.%s' % x for x in accounting_lead.columns])
+        # Note: 211 is ID of API user
+        self.crm.db.cursor.execute("""
+            SELECT 
+                crm_lead.*
+            FROM crm_lead 
+            INNER JOIN res_partner partner ON partner.id = crm_lead.partner_id
+            WHERE partner.company_type ='employer' AND partner.ref IS NOT NULL
+            AND partner.create_uid = 211
+        """)
+        all_crm_leads = self.crm.cursor.dictfetchall()
+        return all_crm_leads
+
+    def migrate(self, clear_acc_data=True):
+        all_crm_leads = self.get_crm_data()
 
         # Get user mapping datas
-        self.db.cursor.execute("SELECT * FROM res_users_mapping")
-        users_mapping = self.db.cursor.dictfetchall()
+        self.accounting.cursor.execute("SELECT * FROM res_users_mapping")
+        users_mapping = self.accounting.cursor.dictfetchall()
         user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
 
         # Get Partner mapping datas
-        self.db.cursor.execute("SELECT * FROM res_partner_mapping")
-        partner_mapping = self.db.cursor.dictfetchall()
+        self.accounting.cursor.execute("SELECT * FROM res_partner_mapping")
+        partner_mapping = self.accounting.cursor.dictfetchall()
         partner_mapping_dict = {x['crm_id']: x['accounting_id'] for x in partner_mapping}
 
         leads_toinsert = []
@@ -38,8 +52,8 @@ class CrmLead(Table):
         # TODO: use multiprocess to speed up insert data
         chunks = [tuple(leads_toinsert[x:x + 10000]) for x in range(0, len(leads_toinsert), 10000)]
         for i, chunk in enumerate(chunks):
-            ins_query = crm.prepare_insert(chunk, lead.keys())
-            query = self.db.cursor.mogrify(ins_query, chunk).decode('utf8')
-            self.db.cursor.execute(query)
+            ins_query = self.prepare_insert(chunk, lead.keys())
+            query = self.accounting.cursor.mogrify(ins_query, chunk).decode('utf8')
+            self.accounting.cursor.execute(query)
         # self.set_highest_id(next_id)
-        self.db.close()
+        self.accounting.close()

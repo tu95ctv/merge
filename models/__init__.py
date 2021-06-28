@@ -5,3 +5,11 @@ from .base import Table
 from .res_partner_res_partner_category_rel import ResPartnerResPartnerCategoryRel
 from .crm_team import CrmTeam
 from .users_crm_team import UsersCrmTeam
+from .base_master_data import BaseMasterData
+from .utm_medium import UtmMedium
+from .crm_tag_rel import CrmTagRel
+from .crm_lead_track_level_up import CrmLeadTrackLevelUp
+from .res_groups import ResGroups
+from .res_groups_users_rel import ResGroupsUsersRel
+from .res_partner_category import ResPartnerCategory
+from .ir_module_category import IrModuleCategory

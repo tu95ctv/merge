@@ -22,17 +22,22 @@ class ResUser(Table):
         return res
 
     def drop_partner_id_not_null(self):
-        self.db.cursor.execute("ALTER TABLE public.res_users ALTER COLUMN partner_id DROP NOT NULL;")
+        self.accounting.cursor.execute("ALTER TABLE public.res_users ALTER COLUMN partner_id DROP NOT NULL;")
 
     def set_partner_id_not_null(self):
-        self.db.cursor.execute("ALTER TABLE public.res_users ALTER COLUMN partner_id SET NOT NULL;")
+        self.accounting.cursor.execute("ALTER TABLE public.res_users ALTER COLUMN partner_id SET NOT NULL;")
 
-    def migrate(self, crm_datas, crm):
+    def get_crm_data(self):
+        self.crm.cursor.execute("SELECT * FROM res_users")
+        return self.crm.cursor.dictfetchall()
+
+    def migrate(self, clear_acc_data=True):
+        self.logger.info("Migrating res.users ....")
         self.init_mapping_table()
         # Partner doesn't exist at this point so remove not null constrain temporary
         self.drop_partner_id_not_null()
-        all_accounting_users = self.select_all()
-        all_crm_users = crm_datas
+        all_accounting_users = self.accounting.cursor.execute("SELECT id, login FROM res_users")
+        all_crm_users = self.get_crm_data()
         users_mapping = {}
         existing_users = {}
         users_to_update = []
@@ -56,9 +61,9 @@ class ResUser(Table):
 
         # Insert new users
         if crm_users_toinsert:
-            ins_query = crm.prepare_insert(crm_users_toinsert, crm_user.keys())
-            query = self.db.cursor.mogrify(ins_query, crm_users_toinsert).decode('utf8')
-            self.db.cursor.execute(query)
+            ins_query = self.prepare_insert(crm_users_toinsert, crm_user.keys())
+            query = self.accounting.cursor.mogrify(ins_query, crm_users_toinsert).decode('utf8')
+            self.accounting.cursor.execute(query)
             self.set_highest_id(next_id)
         # Update users
         update_queries = []
@@ -68,12 +73,12 @@ class ResUser(Table):
             del user['login']
             vals = [v for k, v in user.items() if k not in self.noupdate_fields]
             vals.append(login)
-            update_queries.append(self.db.cursor.mogrify(update_query, vals).decode('utf8'))
+            update_queries.append(self.accounting.cursor.mogrify(update_query, vals).decode('utf8'))
         if update_queries:
-            self.db.cursor.execute(';'.join(update_queries))
+            self.accounting.cursor.execute(';'.join(update_queries))
 
         self.store_mapping_table(users_mapping)
-        self.db.close()
+        self.accounting.close()
 
     def update_partner_id(self, user_partner):
         queries = []
@@ -81,7 +86,7 @@ class ResUser(Table):
             queries.append("UPDATE res_users set partner_id = %s WHERE login = '%s'" % (partner_id, login))
 
         queries = ';'.join(queries)
-        self.db.cursor.execute(queries)
+        self.accounting.cursor.execute(queries)
         # Add not null constrain on partner_id
         self.set_partner_id_not_null()
-        self.db.close()
+        self.accounting.close()
