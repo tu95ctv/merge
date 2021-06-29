@@ -7,12 +7,13 @@ class ResGroups(Table):
     def get_noupdate_fields(self):
         res = super(ResGroups, self).get_noupdate_fields()
         res.extend([
-            'category_id'
+            'category_id',
+            'name'
         ])
         return res
 
     def get_crm_data(self):
-        self.crm.cursor.execute("SELECT %s FROM res_groups")
+        self.crm.cursor.execute("SELECT * FROM res_groups")
         all_crm_partner = self.crm.cursor.dictfetchall()
         return all_crm_partner
 
@@ -49,8 +50,10 @@ class ResGroups(Table):
         ]
         next_id = int(self.get_highest_id()) + 1
         for group in all_crm_groups:
+            if group['category_id'] in category_mapping_dict:
+                group['category_id'] = category_mapping_dict[group['category_id']]
             key = (group['name'], group['category_id'])
-            if existing_partner.get(group['ref'], False):
+            if existing_partner.get(key, False):
                 partners_mapping[group['id']] = existing_partner.get(key)
                 groups_to_update.append(group)
             else:

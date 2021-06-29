@@ -7,7 +7,7 @@ class CrmLead(Table):
     def get_crm_data(self):
         # columns = ','.join(['crm_lead.%s' % x for x in accounting_lead.columns])
         # Note: 211 is ID of API user
-        self.crm.db.cursor.execute("""
+        self.crm.cursor.execute("""
             SELECT 
                 crm_lead.*
             FROM crm_lead 

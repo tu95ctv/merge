@@ -17,7 +17,8 @@ class ResUser(Table):
         res.extend([
             'login',
             'password',
-            'company_id'
+            'company_id',
+            'partner_id',
         ])
         return res
 
@@ -36,7 +37,8 @@ class ResUser(Table):
         self.init_mapping_table()
         # Partner doesn't exist at this point so remove not null constrain temporary
         self.drop_partner_id_not_null()
-        all_accounting_users = self.accounting.cursor.execute("SELECT id, login FROM res_users")
+        self.accounting.cursor.execute("SELECT id, login FROM res_users")
+        all_accounting_users = self.accounting.cursor.dictfetchall()
         all_crm_users = self.get_crm_data()
         users_mapping = {}
         existing_users = {}
@@ -56,12 +58,19 @@ class ResUser(Table):
             else:
                 users_mapping[crm_user['id']] = next_id
                 crm_user['id'] = next_id
+                # Set default create / write user is Administrator
+                crm_user['create_uid'] = 2
+                crm_user['write_uid'] = 2
+                # Remove partner_id & map later
+                del crm_user['partner_id']
                 next_id += 1
                 crm_users_toinsert.append(tuple([crm_user[k] for k in crm_user]))
 
         # Insert new users
         if crm_users_toinsert:
-            ins_query = self.prepare_insert(crm_users_toinsert, crm_user.keys())
+            keys = list(crm_user.keys())
+            keys.remove('partner_id')
+            ins_query = self.prepare_insert(crm_users_toinsert, keys)
             query = self.accounting.cursor.mogrify(ins_query, crm_users_toinsert).decode('utf8')
             self.accounting.cursor.execute(query)
             self.set_highest_id(next_id)

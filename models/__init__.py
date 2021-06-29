@@ -13,3 +13,6 @@ from .res_groups import ResGroups
 from .res_groups_users_rel import ResGroupsUsersRel
 from .res_partner_category import ResPartnerCategory
 from .ir_module_category import IrModuleCategory
+from .crm_stage import CrmStage
+from .res_users_role import ResUsersRole
+from  .res_users_role_line import ResUsersRoleLine

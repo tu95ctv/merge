@@ -18,13 +18,18 @@ class BaseMasterData(Table):
         users_mapping = self.accounting.cursor.dictfetchall()
         user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
         data = []
+        current_id = max_id = int(self.get_highest_id())
         for cll in to_inserts:
             for f in ['user_id', 'create_uid', 'write_uid']:
                 if f in cll and cll[f] in user_mapping_dict:
                     cll[f] = user_mapping_dict[cll[f]]
             data.append(tuple(cll[k] for k in cll))
-
-        ins_query = self.prepare_insert(data, to_inserts[0].keys())
-        query = self.accounting.cursor.mogrify(ins_query, data).decode('utf8')
-        self.accounting.cursor.execute(query)
+            max_id = max(cll['id'], max_id)
+        if current_id != max_id:
+            self.set_highest_id(current_id)
+        chunks = [tuple(data[x:x + 10000]) for x in range(0, len(data), 10000)]
+        for i, chunk in enumerate(chunks):
+            ins_query = self.prepare_insert(chunk, to_inserts[0].keys())
+            query = self.accounting.cursor.mogrify(ins_query, chunk).decode('utf8')
+            self.accounting.cursor.execute(query)
         self.accounting.close()

@@ -6,11 +6,12 @@ class IrModuleCategory(Table):
     _update_key = 'name'
 
     def get_crm_data(self):
-        self.crm.cursor.execute("SELECT * FROM ir_module_category")
+        # id > 99 because only diff between acc & crm start from record with id greater than 99
+        self.crm.cursor.execute("SELECT * FROM ir_module_category WHERE id > 99")
         return self.crm.cursor.dictfetchall()
 
     def get_accounting_data(self):
-        self.accounting.cursor.execute("SELECT * FROM ir_module_category")
+        self.accounting.cursor.execute("SELECT * FROM ir_module_category WHERE id > 99")
         return self.crm.cursor.dictfetchall()
 
     def migrate(self, clear_acc_data=False):
@@ -21,7 +22,7 @@ class IrModuleCategory(Table):
         crm_cat_dict = {x['name']: x['id'] for x in accounting_datas}
         to_insert = []
         to_update = []
-        mapping_datas = []
+        mapping_datas = {}
 
         for cat in crm_datas:
             if crm_cat_dict.get(cat['name'], False):
@@ -32,14 +33,14 @@ class IrModuleCategory(Table):
                 cat['id'] = next_id
                 to_insert.append(tuple([cat[k] for k in cat]))
                 next_id += 1
-        # Insert partner
+        # Insert category
         if to_insert:
             ins_query = self.prepare_insert(to_insert, crm_datas[0].keys())
             query = self.accounting.cursor.mogrify(ins_query, to_insert).decode('utf8')
             self.accounting.cursor.execute(query)
             self.set_highest_id(next_id)
 
-        # Update partner
+        # Update category
         update_queries = []
         for cat_to_update in to_update:
             update_query = self.prepare_update(cat_to_update)

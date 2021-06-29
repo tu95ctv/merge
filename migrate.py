@@ -11,7 +11,7 @@ def map_user_partner_id():
     ru = ResUser()
     # Get all users from accounting which doesn't have partner_id
     ru.accounting.cursor.execute("SELECT login FROM res_users WHERE partner_id IS NULL")
-    user_logins = tuple(x[0] for x in res_users.accounting.cursor.fetchall())
+    user_logins = tuple(x[0] for x in ru.accounting.cursor.fetchall())
     # Get all users from CRM with corresponding logins
     ru.crm.cursor.execute("SELECT login, partner_id FROM res_users WHERE login in %s" % (user_logins,))
     user_partners = ru.crm.cursor.dictfetchall()
@@ -43,18 +43,18 @@ def migrate_crm_datas():
     # Migrate master data for CRM
     migrate_master_data('crm_lost_reason', clear_acc_data=True)
     migrate_master_data('crm_lead_lost', clear_acc_data=True)
-    migrate_master_data('crm_stage', clear_acc_data=True)
+    CrmStage().migrate()
     migrate_master_data('crm_tag', clear_acc_data=True)
-    CrmTagRel().migrate()
 
     # Migrate CRM
     CrmLead().migrate()
+    CrmTagRel().migrate()
 
     # Migrate Rel tables
     CrmLeadTrackLevelUp().migrate(clear_acc_data=True)
-    migrate_master_data('crm_stage_sub_rel')
-    migrate_master_data('crm_stage_lost_reason_rel')
-    migrate_master_data('crm_stage_followup_result_rel')
+    migrate_master_data('crm_stage_sub_rel', clear_acc_data=True)
+    migrate_master_data('crm_stage_lost_reason_rel', clear_acc_data=True)
+    migrate_master_data('crm_stage_followup_result_rel', clear_acc_data=True)
 
     # Migrate Crm Team
     CrmTeam().migrate()
@@ -72,6 +72,10 @@ def migrate_partner_datas():
 def migrate_user_datas():
     ResUser().migrate()
     IrModuleCategory().migrate()
+    ResGroups().migrate()
+    ResGroupsUsersRel().migrate()
+    ResUsersRole().migrate()
+    ResUsersRoleLine().migrate()
 
 
 if __name__ == '__main__':

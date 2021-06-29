@@ -1,5 +1,5 @@
-from ..db import Database
-from ..config import options
+from db import Database
+from config import options
 import logging
 logger = logging.getLogger('SIEUVIET_MIGRATE')
 

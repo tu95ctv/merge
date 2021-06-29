@@ -27,7 +27,7 @@ class ResPartner(Table):
     def get_crm_data(self):
         # Note: 211 is ID of API user
         self.crm.cursor.execute(
-            "SELECT %s FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL AND create_uid = 211" % crm_partner.columns_str)
+            "SELECT * FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL AND create_uid = 211")
         all_crm_partner = self.crm.cursor.dictfetchall()
 
         # Get partner that link to user from CRM side
@@ -53,7 +53,7 @@ class ResPartner(Table):
         users_mapping = self.accounting.cursor.dictfetchall()
         user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
 
-        self.accounting.cursor.execute("SELECT %s FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL" % crm.columns_str)
+        self.accounting.cursor.execute("SELECT %s FROM res_partner WHERE company_type ='employer' AND ref IS NOT NULL" % self.columns_str)
         all_accounting_partner = self.accounting.cursor.dictfetchall()
 
         existing_partner = {x['ref']: x['id'] for x in all_accounting_partner if x['ref']}
@@ -73,6 +73,8 @@ class ResPartner(Table):
                         partner[field] = user_mapping_dict[partner[field]]
                 partners_mapping[partner['id']] = next_id
                 partner['id'] = next_id
+                del partner['commercial_partner_id']
+                del partner['parent_id']
                 crm_partner_toinsert.append(tuple([partner[k] for k in partner]))
                 next_id += 1
 
