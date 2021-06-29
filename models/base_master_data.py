@@ -8,7 +8,7 @@ class BaseMasterData(Table):
         crm_datas = self.crm.cursor.dictfetchall()
         return crm_datas
 
-    def migrate(self, clear_acc_data=False):
+    def migrate(self, clear_acc_data=False, set_sequence=True):
         self.logger.info("Migrating %s ...." % self._name)
         if clear_acc_data:
             self.accounting.cursor.execute("DELETE FROM %s" % self._name)
@@ -18,13 +18,15 @@ class BaseMasterData(Table):
         users_mapping = self.accounting.cursor.dictfetchall()
         user_mapping_dict = {x['crm_id']: x['accounting_id'] for x in users_mapping}
         data = []
-        current_id = max_id = int(self.get_highest_id())
+
+        current_id = max_id = int(self.get_highest_id()) if set_sequence else 0
         for cll in to_inserts:
             for f in ['user_id', 'create_uid', 'write_uid']:
                 if f in cll and cll[f] in user_mapping_dict:
                     cll[f] = user_mapping_dict[cll[f]]
             data.append(tuple(cll[k] for k in cll))
-            max_id = max(cll['id'], max_id)
+            if set_sequence:
+                max_id = max(cll['id'], max_id)
         if current_id != max_id:
             self.set_highest_id(current_id)
         chunks = [tuple(data[x:x + 10000]) for x in range(0, len(data), 10000)]

@@ -24,9 +24,9 @@ def map_user_partner_id():
     ru.update_partner_id(user_partners_dict)
 
 
-def migrate_master_data(table, clear_acc_data=False):
+def migrate_master_data(table, clear_acc_data=False, set_sequence=False):
     logger.info("Migrating %s ...." % table)
-    BaseMasterData(name=table).migrate(clear_acc_data=clear_acc_data)
+    BaseMasterData(name=table).migrate(clear_acc_data=clear_acc_data, set_sequence=set_sequence)
 
 
 def clear_accounting_crm_lead():
@@ -39,7 +39,6 @@ def clear_accounting_crm_lead():
 def migrate_crm_datas():
     # Clear all crm data from accounting side
     clear_accounting_crm_lead()
-
     # Migrate master data for CRM
     migrate_master_data('crm_lost_reason', clear_acc_data=True)
     migrate_master_data('crm_lead_lost', clear_acc_data=True)
@@ -48,13 +47,13 @@ def migrate_crm_datas():
 
     # Migrate CRM
     CrmLead().migrate()
-    CrmTagRel().migrate()
+    CrmTagRel().migrate(clear_acc_data=True, set_sequence=False)
 
     # Migrate Rel tables
     CrmLeadTrackLevelUp().migrate(clear_acc_data=True)
-    migrate_master_data('crm_stage_sub_rel', clear_acc_data=True)
-    migrate_master_data('crm_stage_lost_reason_rel', clear_acc_data=True)
-    migrate_master_data('crm_stage_followup_result_rel', clear_acc_data=True)
+    migrate_master_data('crm_stage_sub_rel', clear_acc_data=True, set_sequence=False)
+    migrate_master_data('crm_stage_lost_reason_rel', clear_acc_data=True, set_sequence=False)
+    migrate_master_data('crm_stage_followup_result_rel', clear_acc_data=True, set_sequence=False)
 
     # Migrate Crm Team
     CrmTeam().migrate()
