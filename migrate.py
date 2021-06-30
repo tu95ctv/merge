@@ -44,6 +44,7 @@ def migrate_crm_datas():
     migrate_master_data('crm_lead_lost', clear_acc_data=True)
     CrmStage().migrate()
     migrate_master_data('crm_tag', clear_acc_data=True)
+    migrate_master_data('crm_probability', clear_acc_data=True)
 
     # Migrate CRM
     CrmLead().migrate()
@@ -75,6 +76,7 @@ def migrate_user_datas():
     ResGroupsUsersRel().migrate()
     ResUsersRole().migrate()
     ResUsersRoleLine().migrate()
+    ResCompanyUsersRel().migrate()
 
 
 if __name__ == '__main__':

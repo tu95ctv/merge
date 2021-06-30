@@ -28,7 +28,7 @@ class BaseMasterData(Table):
             if set_sequence:
                 max_id = max(cll['id'], max_id)
         if current_id != max_id:
-            self.set_highest_id(current_id)
+            self.set_highest_id(max_id + 1)
         chunks = [tuple(data[x:x + 10000]) for x in range(0, len(data), 10000)]
         for i, chunk in enumerate(chunks):
             ins_query = self.prepare_insert(chunk, to_inserts[0].keys())

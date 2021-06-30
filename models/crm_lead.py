@@ -32,7 +32,7 @@ class CrmLead(Table):
         partner_mapping_dict = {x['crm_id']: x['accounting_id'] for x in partner_mapping}
 
         leads_toinsert = []
-        # next_id = int(self.get_highest_id()) + 1
+        max_id = self.get_highest_id() + 1
         for lead in all_crm_leads:
             if lead['partner_id'] in partner_mapping_dict:
                 lead['partner_id'] = partner_mapping_dict[lead['partner_id']]
@@ -42,9 +42,9 @@ class CrmLead(Table):
             # Ugly hack to map team_id
             if lead['team_id'] == 51:
                 lead['team_id'] = 52
-            # lead['id'] = next_id
-            # next_id += 1
+            max_id = max(max_id, lead['id'])
             leads_toinsert.append(tuple(lead[k] for k in lead))
+        self.set_highest_id(max_id+1)
         # Free some memory
         partner_mapping_dict.clear()
         del partner_mapping

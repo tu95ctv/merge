@@ -15,4 +15,5 @@ from .res_partner_category import ResPartnerCategory
 from .ir_module_category import IrModuleCategory
 from .crm_stage import CrmStage
 from .res_users_role import ResUsersRole
-from  .res_users_role_line import ResUsersRoleLine
+from .res_users_role_line import ResUsersRoleLine
+from .res_company_users_rel import ResCompanyUsersRel

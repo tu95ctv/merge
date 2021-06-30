@@ -16,7 +16,7 @@ class ResUser(Table):
         res = super(ResUser, self).get_noupdate_fields()
         res.extend([
             'login',
-            'password',
+            # 'password',
             'company_id',
             'partner_id',
         ])
