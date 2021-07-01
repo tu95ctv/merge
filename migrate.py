@@ -77,6 +77,7 @@ def migrate_user_datas():
     ResUsersRole().migrate()
     ResUsersRoleLine().migrate()
     ResCompanyUsersRel().migrate()
+    ResGroupsImplied().migrate()
 
 
 if __name__ == '__main__':

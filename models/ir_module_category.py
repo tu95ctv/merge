@@ -26,10 +26,18 @@ class IrModuleCategory(Table):
 
         for cat in crm_datas:
             if crm_cat_dict.get(cat['name'], False):
-                mapping_datas[cat['id']] = crm_cat_dict[cat['name']]
+                mapping_datas[cat['id']] = {
+                    'map_id': crm_cat_dict[cat['name']],
+                    'ins_data': str(cat),
+                    'upt_data': ''
+                }
                 to_update.append(cat)
             else:
-                mapping_datas[cat['id']] = next_id
+                mapping_datas[cat['id']] = {
+                    'map_id': next_id,
+                    'ins_data': '',
+                    'upt_data': str(cat)
+                }
                 cat['id'] = next_id
                 to_insert.append(tuple([cat[k] for k in cat]))
                 next_id += 1

@@ -65,13 +65,21 @@ class ResPartner(Table):
         next_id = int(self.get_highest_id()) + 1
         for partner in all_crm_partner:
             if existing_partner.get(partner['ref'], False):
-                partners_mapping[partner['id']] = existing_partner.get(partner['ref'])
+                partners_mapping[partner['id']] = {
+                    'map_id': existing_partner.get(partner['ref']),
+                    'ins_data': str(partner),
+                    'upt_data': ''
+                }
                 partners_to_update.append(partner)
             else:
                 for field in partner_user_fields:
                     if partner[field] in user_mapping_dict:
                         partner[field] = user_mapping_dict[partner[field]]
-                partners_mapping[partner['id']] = next_id
+                partners_mapping[partner['id']] = {
+                    'map_id': next_id,
+                    'ins_data': '',
+                    'upt_data': str(partner)
+                }
                 partner['id'] = next_id
                 del partner['commercial_partner_id']
                 del partner['parent_id']

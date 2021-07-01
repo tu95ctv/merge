@@ -59,17 +59,20 @@ class Table(object):
         init_mapping_tbl_query = """        
         CREATE TABLE IF NOT EXISTS %s (
             crm_id INT,
-            accounting_id INT
+            accounting_id INT,
+            ins_data VARCHAR,
+            upt_data VARCHAR
         ); 
         """ % self.mapping_name
         self.accounting.cursor.execute(init_mapping_tbl_query)
 
     def store_mapping_table(self, data):
         logger.info("Store mapping table for %s" % self._name)
-        ins_query = "INSERT INTO %s (crm_id, accounting_id) VALUES " % self.mapping_name
+        ins_query = "INSERT INTO %s (crm_id, accounting_id, ins_data, upt_data) VALUES " % self.mapping_name
         ins_list = []
         for key in data:
-            ins_list.append(str((key, data[key])))
+            ins_str = self.accounting.cursor.mogrify('(%s, %s, %s, %s)', (key, data[key]['map_id'], data[key]['ins_data'], data[key]['upt_data'])).decode('utf8')
+            ins_list.append(ins_str)
         ins_query += ", ".join(ins_list)
         self.accounting.cursor.execute(ins_query)
 

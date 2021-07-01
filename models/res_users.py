@@ -53,10 +53,18 @@ class ResUser(Table):
             if crm_user['sale_team_id'] == 51:
                 crm_user['sale_team_id'] = 52
             if existing_users.get(crm_user['login'], False):
-                users_mapping[crm_user['id']] = existing_users.get(crm_user['login'])
+                users_mapping[crm_user['id']] = {
+                    'map_id': existing_users.get(crm_user['login']),
+                    'ins_data': str(crm_user),
+                    'upt_data': ''
+                }
                 users_to_update.append(crm_user)
             else:
-                users_mapping[crm_user['id']] = next_id
+                users_mapping[crm_user['id']] = {
+                    'map_id': next_id,
+                    'ins_data': '',
+                    'upt_data': str(crm_user)
+                }
                 crm_user['id'] = next_id
                 # Set default create / write user is Administrator
                 crm_user['create_uid'] = 2

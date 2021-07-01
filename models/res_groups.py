@@ -24,7 +24,7 @@ class ResGroups(Table):
     def migrate(self, clear_acc_data=True):
         self.logger.info("Migrating res.partner ....")
         groups_to_update = []
-        partners_mapping = {}
+        groups_mapping = {}
         existing_partner = {}
         crm_group_toinsert = []
         all_crm_groups = self.get_crm_data()
@@ -54,13 +54,21 @@ class ResGroups(Table):
                 group['category_id'] = category_mapping_dict[group['category_id']]
             key = (group['name'], group['category_id'])
             if existing_partner.get(key, False):
-                partners_mapping[group['id']] = existing_partner.get(key)
+                groups_mapping[group['id']] = {
+                    'map_id': existing_partner.get(key),
+                    'ins_data': str(group),
+                    'upt_data': ''
+                }
                 groups_to_update.append(group)
             else:
                 for field in partner_user_fields:
                     if group[field] in user_mapping_dict:
                         group[field] = user_mapping_dict[group[field]]
-                partners_mapping[group['id']] = next_id
+                groups_mapping[group['id']] = {
+                    'map_id': next_id,
+                    'ins_data': '',
+                    'upt_data': str(group)
+                }
                 group['id'] = next_id
                 crm_group_toinsert.append(tuple([group[k] for k in group]))
                 next_id += 1
@@ -90,7 +98,7 @@ class ResGroups(Table):
             for chunk in chunks:
                 self.accounting.cursor.execute(';'.join(chunk))
 
-        self.store_mapping_table(partners_mapping)
+        self.store_mapping_table(groups_mapping)
         self.accounting.close()
 
     def prepare_update(self, data):
