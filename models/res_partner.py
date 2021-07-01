@@ -67,8 +67,8 @@ class ResPartner(Table):
             if existing_partner.get(partner['ref'], False):
                 partners_mapping[partner['id']] = {
                     'map_id': existing_partner.get(partner['ref']),
-                    'ins_data': str(partner),
-                    'upt_data': ''
+                    'ins_data': '',
+                    'upt_data': str(partner)
                 }
                 partners_to_update.append(partner)
             else:
@@ -77,8 +77,8 @@ class ResPartner(Table):
                         partner[field] = user_mapping_dict[partner[field]]
                 partners_mapping[partner['id']] = {
                     'map_id': next_id,
-                    'ins_data': '',
-                    'upt_data': str(partner)
+                    'ins_data': str(partner),
+                    'upt_data': '',
                 }
                 partner['id'] = next_id
                 del partner['commercial_partner_id']

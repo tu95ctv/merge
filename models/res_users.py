@@ -55,15 +55,15 @@ class ResUser(Table):
             if existing_users.get(crm_user['login'], False):
                 users_mapping[crm_user['id']] = {
                     'map_id': existing_users.get(crm_user['login']),
-                    'ins_data': str(crm_user),
-                    'upt_data': ''
+                    'ins_data': '',
+                    'upt_data': str(crm_user),
                 }
                 users_to_update.append(crm_user)
             else:
                 users_mapping[crm_user['id']] = {
                     'map_id': next_id,
-                    'ins_data': '',
-                    'upt_data': str(crm_user)
+                    'ins_data': str(crm_user),
+                    'upt_data': ''
                 }
                 crm_user['id'] = next_id
                 # Set default create / write user is Administrator

@@ -56,8 +56,8 @@ class ResGroups(Table):
             if existing_partner.get(key, False):
                 groups_mapping[group['id']] = {
                     'map_id': existing_partner.get(key),
-                    'ins_data': str(group),
-                    'upt_data': ''
+                    'ins_data': '',
+                    'upt_data': str(group)
                 }
                 groups_to_update.append(group)
             else:
@@ -66,8 +66,8 @@ class ResGroups(Table):
                         group[field] = user_mapping_dict[group[field]]
                 groups_mapping[group['id']] = {
                     'map_id': next_id,
-                    'ins_data': '',
-                    'upt_data': str(group)
+                    'ins_data': str(group),
+                    'upt_data': ''
                 }
                 group['id'] = next_id
                 crm_group_toinsert.append(tuple([group[k] for k in group]))

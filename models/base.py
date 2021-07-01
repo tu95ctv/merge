@@ -1,6 +1,7 @@
 from db import Database
 from config import options
 import logging
+from tools import split_list
 logger = logging.getLogger('SIEUVIET_MIGRATE')
 
 
@@ -73,8 +74,10 @@ class Table(object):
         for key in data:
             ins_str = self.accounting.cursor.mogrify('(%s, %s, %s, %s)', (key, data[key]['map_id'], data[key]['ins_data'], data[key]['upt_data'])).decode('utf8')
             ins_list.append(ins_str)
-        ins_query += ", ".join(ins_list)
-        self.accounting.cursor.execute(ins_query)
+        chunks = split_list(ins_list)
+        for chunk in chunks:
+            query = ins_query + ", ".join(chunk)
+            self.accounting.cursor.execute(query)
 
     def prepare_insert(self, data, keys):
         keys = [x if x not in self.cursed_columns else '"%s"' % x for x in keys]
