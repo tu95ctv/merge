@@ -70,7 +70,7 @@ def migrate_partner_datas():
 
 
 def migrate_user_datas():
-    ResUser().migrate()
+    # ResUser().migrate()
     IrModuleCategory().migrate()
     ResGroups().migrate()
     ResGroupsUsersRel().migrate()

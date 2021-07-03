@@ -8,20 +8,22 @@ class IrModuleCategory(Table):
     def get_crm_data(self):
         self.crm.cursor.execute("""
         SELECT 
-            concat(parent.name, '/', imc1.name) AS full_name,
-            imc1.*
-        FROM ir_module_category imc1
-        LEFT JOIN ir_module_category parent ON parent.id = imc1.parent_id;
+            concat(parent.name, '/', 
+            CASE WHEN imc.name = 'Invoicing' THEN 'Accounting' ELSE imc.name END
+            ) AS full_name,
+            imc.*
+        FROM ir_module_category imc
+        LEFT JOIN ir_module_category parent ON parent.id = imc.parent_id;
         """)
         return self.crm.cursor.dictfetchall()
 
     def get_accounting_data(self):
         self.accounting.cursor.execute("""
         SELECT 
-            concat(parent.name, '/', imc1.name) AS full_name,
-            imc1.*
-        FROM ir_module_category imc1
-        LEFT JOIN ir_module_category parent ON parent.id = imc1.parent_id;
+            concat(parent.name, '/', imc.name) AS full_name,
+            imc.*
+        FROM ir_module_category imc
+        LEFT JOIN ir_module_category parent ON parent.id = imc.parent_id;
         """)
         return self.accounting.cursor.dictfetchall()
 
