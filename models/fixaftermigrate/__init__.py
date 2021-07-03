@@ -1,0 +1,3 @@
+from .crm_lead import CrmLeadAfterMigrate
+from .crm_lead_track_level_up import CrmLeadTrackLevelUpAfterMigrate
+from .crm_tag_rel import CrmTagRelAfterMigrate

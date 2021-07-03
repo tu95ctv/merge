@@ -18,3 +18,4 @@ from .res_users_role import ResUsersRole
 from .res_users_role_line import ResUsersRoleLine
 from .res_company_users_rel import ResCompanyUsersRel
 from .res_groups_implied import ResGroupsImplied
+from .fixaftermigrate import *

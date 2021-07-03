@@ -80,7 +80,16 @@ def migrate_user_datas():
     ResGroupsImplied().migrate()
 
 
+def fix_migrate_crm_datas():
+    # Migrate CRM
+    CrmLeadAfterMigrate().migrate()
+    CrmTagRelAfterMigrate().migrate(clear_acc_data=False, set_sequence=False)
+    # Migrate Rel tables
+    CrmLeadTrackLevelUpAfterMigrate().migrate(clear_acc_data=False)
+
+
 if __name__ == '__main__':
-    migrate_user_datas()
-    migrate_partner_datas()
-    migrate_crm_datas()
+    # migrate_user_datas()
+    # migrate_partner_datas()
+    # migrate_crm_datas()
+    fix_migrate_crm_datas()
