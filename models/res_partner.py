@@ -88,6 +88,9 @@ class ResPartner(Table):
 
         # Insert partner
         if crm_partner_toinsert:
+            keys = list(all_crm_partner[0].keys())
+            keys.remove('commercial_partner_id')
+            keys.remove('parent_id')
             ins_query = self.prepare_insert(crm_partner_toinsert, all_crm_partner[0].keys())
             query = self.accounting.cursor.mogrify(ins_query, crm_partner_toinsert).decode('utf8')
             self.accounting.cursor.execute(query)
